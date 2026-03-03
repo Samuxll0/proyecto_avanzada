@@ -3,9 +3,6 @@ info:
   title: Sistema de Gestión de Solicitudes Académicas
   version: 1.0.0
 
-servers:
-  - url: http://localhost:8080/api
-    description: Servidor local de desarrollo
 security:
   - BearerAuth: []
 

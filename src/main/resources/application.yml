@@ -1,6 +1,6 @@
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
   swagger-ui:
-    url: src/main/resources/openapi/contrato-api.yaml
     path: /swagger-ui.html
+    url: /openapi/contrato-api.yaml
