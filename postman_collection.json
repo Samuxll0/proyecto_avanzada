@@ -1,0 +1,200 @@
+{
+	"info": {
+		"_postman_id": "402eb3a8-444f-47cf-8da9-a29d5843a0d5",
+		"name": "Sistema de Gestión de Solicitudes Académicas",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if(jsonData.token) { pm.environment.set(\"token\", jsonData.token); }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@coordinacion.triagre.com\",\n    \"password\": \"admin123\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/auth/login", "host": [ "{{baseUrl}}" ], "path": [ "auth", "login" ] }
+					}
+				},
+				{
+					"name": "Register Auto-Dominio",
+
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nombre\": \"Juan Estudiante\",\n    \"email\": \"juan@estudiante.triagre.com\",\n    \"password\": \"secreto123\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/auth/register", "host": [ "{{baseUrl}}" ], "path": [ "auth", "register" ] }
+					}
+				}
+			]
+		},
+		{
+			"name": "Catálogos",
+			"item": [
+
+				{
+					"name": "Obtener Tipos Solicitud",
+					"request": {
+						"method": "GET",
+						"header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+						"url": { "raw": "{{baseUrl}}/tipos-solicitud", "host": [ "{{baseUrl}}" ], "path": [ "tipos-solicitud" ] }
+					}
+				},
+				{
+					"name": "Obtener Prioridades",
+					"request": {
+						"method": "GET",
+						"header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+						"url": { "raw": "{{baseUrl}}/prioridades", "host": [ "{{baseUrl}}" ], "path": [ "prioridades" ] }
+					}
+				},
+				{
+					"name": "Obtener Usuarios",
+					"request": {
+						"method": "GET",
+						"header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+						"url": { "raw": "{{baseUrl}}/usuarios", "host": [ "{{baseUrl}}" ], "path": [ "usuarios" ] }
+					}
+				},
+				{
+					"name": "Crear Tipo Solicitud",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nombre\": \"Certificado de Notas\",\n    \"descripcion\": \"Solicitud de certificado de notas semestral\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/tipos-solicitud", "host": [ "{{baseUrl}}" ], "path": [ "tipos-solicitud" ] }
+					}
+				}
+
+			]
+		},
+		{
+			"name": "Solicitudes",
+			"item": [
+				{
+					"name": "Crear Solicitud",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"descripcion\": \"Necesito mi certificado lo antes posible.\",\n    \"canalOrigen\": \"CSU\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/solicitudes", "host": [ "{{baseUrl}}" ], "path": [ "solicitudes" ] }
+					}
+				},
+				{
+					"name": "Clasificar",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"tipoSolicitudId\": \"<UUID_TIPO>\",\n    \"prioridad\": \"<PRIORIDAD>\",\n    \"justificacionPrioridad\": \"Se acercan las inscripciones a grado\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/solicitudes/<UUID_SOL}/clasificacion", "host": [ "{{baseUrl}}" ], "path": [ "solicitudes", "<UUID_SOL>", "clasificacion" ] }
+					}
+				},
+				{
+					"name": "Asignar",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"usuarioId\": 1\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/solicitudes/1/asignacion", "host": [ "{{baseUrl}}" ], "path": [ "solicitudes", "1", "asignacion" ] }
+					}
+				},
+				{
+					"name": "Cambiar Estado (Atender)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"comentariosAtencion\": \"El certificado se ha procesado y enviado al estudiante\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/solicitudes/1/atencion", "host": [ "{{baseUrl}}" ], "path": [ "solicitudes", "1", "atencion" ] }
+					}
+				},
+				{
+					"name": "Cierre",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"comentariosCierre\": \"Confirmación de recepción por parte del estudiante.\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/solicitudes/1/cierre", "host": [ "{{baseUrl}}" ], "path": [ "solicitudes", "1", "cierre" ] }
+					}
+				},
+				{
+					"name": "Obtener Historial",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "{{baseUrl}}/solicitudes/1/historial", "host": [ "{{baseUrl}}" ], "path": [ "solicitudes", "1", "historial" ] }
+					}
+				},
+				{
+					"name": "Generar Resumen IA",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+						"url": { "raw": "{{baseUrl}}/solicitudes/1/resumen", "host": [ "{{baseUrl}}" ], "path": [ "solicitudes", "1", "resumen" ] }
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{ "key": "baseUrl", "value": "http://localhost:8080" }
+	]
+}
