@@ -2,342 +2,302 @@ openapi: 3.0.0
 info:
   title: Sistema de Gestión de Solicitudes Académicas
   version: 1.0.0
+  description: API alineada con persistencia secuencial (Long IDs) y lógica de seguridad JWT.
 
 security:
   - BearerAuth: []
 
 paths:
-
-  /solicitudes:
+  # --- AUTENTICACIÓN ---
+  /auth/login:
     post:
-      summary: Crear solicitud
-      operationId: createSolicitud
+      summary: Iniciar sesión
+      tags: [Auth]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CrearSolicitudRequest'
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  { type: string, example: "admin@coordinacion.triagre.com" }
+                password: { type: string, example: "admin123" }
       responses:
-        '201':
-          description: Solicitud creada
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Solicitud'
-        '400': { $ref: '#/components/responses/BadRequest' }
+                type: object
+                properties:
+                  token: { type: string }
+
+  /auth/register:
+    post:
+      summary: Auto-registro institucional
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, email, password]
+              properties:
+                nombre: { type: string }
+                email:
+                  {
+                    type: string,
+                    description: "Debe ser @estudiante.triagre.com, @docente.triagre.com, etc.",
+                  }
+                password: { type: string }
+      responses:
+        "201":
+          description: Usuario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  # --- SOLICITUDES ---
+  /solicitudes:
+    post:
+      summary: Crear solicitud (Simétrica a RF-01)
+      tags: [Solicitudes]
+      description: El autor (solicitante) se extrae automáticamente del Token JWT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrearSolicitudRequest"
+      responses:
+        "201":
+          description: Solicitud registrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Solicitud"
 
     get:
-      summary: Listar solicitudes
-      operationId: findSolicitudes
+      summary: Listar solicitudes con filtros
+      tags: [Solicitudes]
       parameters:
-        - { name: estado, in: query, schema: { $ref: '#/components/schemas/EstadoSolicitud' } }
-        - { name: tipoSolicitudId, in: query, schema: { type: string, format: uuid } }
-        - { name: prioridad, in: query, schema: { $ref: '#/components/schemas/NivelPrioridad' } }
-        - { name: responsableId, in: query, schema: { type: string, format: uuid } }
+        - {
+            name: estado,
+            in: query,
+            schema: { $ref: "#/components/schemas/EstadoSolicitud" },
+          }
+        - { name: tipoId, in: query, schema: { type: integer } }
+        - {
+            name: prioridad,
+            in: query,
+            schema: { $ref: "#/components/schemas/NivelPrioridad" },
+          }
+        - { name: responsableId, in: query, schema: { type: integer } }
       responses:
-        '200':
-          description: Lista paginada
+        "200":
+          description: Página de resultados
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginaSolicitudes'
+                $ref: "#/components/schemas/PaginaSolicitudes"
 
   /solicitudes/{id}:
     get:
-      summary: Obtener solicitud por ID
-      operationId: getSolicitudById
+      summary: Detalle completo de una solicitud
+      tags: [Solicitudes]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
       responses:
-        '200':
-          description: Solicitud encontrada
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Solicitud'
-        '404': { $ref: '#/components/responses/NotFound' }
+                $ref: "#/components/schemas/Solicitud"
 
   /solicitudes/{id}/clasificacion:
     put:
-      summary: Clasificar solicitud
-      operationId: classifySolicitud
+      summary: Clasificar y Priorizar (Solo COORDINADOR)
+      tags: [Workflow]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClasificacionRequest'
+              $ref: "#/components/schemas/ClasificacionRequest"
       responses:
-        '200': { $ref: '#/components/responses/Success' }
-
-  /solicitudes/{id}/estado:
-    patch:
-      summary: Cambiar estado
-      operationId: changeEstadoSolicitud
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CambioEstadoRequest'
-      responses:
-        '200': { $ref: '#/components/responses/Success' }
+        "200":
+          description: Clasificación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Solicitud"
 
   /solicitudes/{id}/asignacion:
     post:
-      summary: Asignar responsable
-      operationId: assignResponsable
+      summary: Asignar a un responsable (Solo COORDINADOR)
+      tags: [Workflow]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AsignacionRequest'
+              type: object
+              properties:
+                usuarioId: { type: integer }
       responses:
-        '201':
-          description: Asignación creada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Asignacion'
+        "200":
+          description: Asignación registrada exitosamente
 
-  /solicitudes/{id}/historial:
-    get:
-      summary: Ver historial
-      operationId: getHistorial
+  /solicitudes/{id}/atencion:
+    put:
+      summary: Marcar como Atendida (Solo COORDINADOR)
+      tags: [Workflow]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comentariosAtencion: { type: string }
       responses:
-        '200':
-          description: Historial
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/HistorialSolicitud'
+        "200":
+          description: Estado actualizado a ATENDIDA
 
   /solicitudes/{id}/cierre:
     post:
-      summary: Cerrar solicitud
-      operationId: closeSolicitud
+      summary: Cierre definitivo (Solo COORDINADOR)
+      tags: [Workflow]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: id, in: path, required: true, schema: { type: integer } }
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CierreRequest'
+              type: object
+              properties:
+                comentariosCierre: { type: string }
       responses:
-        '200': { $ref: '#/components/responses/Success' }
+        "200":
+          description: Solicitud CERRADA
 
-  /usuarios:
+  /solicitudes/{id}/resumen:
     get:
-      summary: Listar usuarios
-      operationId: findUsuarios
+      summary: Generar resumen inteligente del historial (IA)
+      tags: [IA]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
       responses:
-        '200':
-          description: Lista usuarios
+        "200":
+          description: Resumen generado
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Usuario'
+                type: object
+                properties:
+                  data: { type: string }
 
+  # --- CATÁLOGOS ---
   /tipos-solicitud:
     get:
-      summary: Listar tipos
-      operationId: findTiposSolicitud
+      summary: Listar catálogo de tipos
+      tags: [Catálogos]
       responses:
-        '200':
-          description: Lista tipos
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: array
-                items:
-                  $ref: '#/components/schemas/TipoSolicitud'
+                items: { $ref: "#/components/schemas/TipoSolicitud" }
 
   /prioridades:
     get:
-      summary: Listar prioridades
-      operationId: findPrioridades
+      summary: Listar niveles de prioridad disponibles
+      tags: [Catálogos]
       responses:
-        '200':
-          description: Lista prioridades
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: array
-                items:
-                  $ref: '#/components/schemas/Prioridad'
+                items: { type: string, example: "ALTA" }
 
-  /ia/sugerencia-clasificacion:
-    post:
-      summary: Sugerencia IA
-      operationId: suggestClasificacionIA
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SugerenciaIARequest'
+  /usuarios:
+    get:
+      summary: Listar personal disponible (Solo COORDINADOR)
+      tags: [Catálogos]
       responses:
-        '200':
-          description: Sugerencia generada
+        "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SugerenciaIAResponse'
+                type: array
+                items: { $ref: "#/components/schemas/Usuario" }
 
 components:
-
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
 
-  responses:
-    Success:
-      description: Operación exitosa
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/SuccessResponse'
-    BadRequest:
-      description: Datos inválidos
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-    NotFound:
-      description: Recurso no encontrado
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-
   schemas:
-
     Solicitud:
       type: object
       properties:
-        id: { type: string, format: uuid }
+        id: { type: integer }
         descripcion: { type: string }
-        fechaRegistro: { type: string, format: date-time }
-        estado: { $ref: '#/components/schemas/EstadoSolicitud' }
-        canalOrigen: { $ref: '#/components/schemas/CanalOrigen' }
+        estado: { $ref: "#/components/schemas/EstadoSolicitud" }
+        canalOrigen: { $ref: "#/components/schemas/CanalOrigen" }
+        tipoSolicitudId: { type: integer }
+        prioridad: { $ref: "#/components/schemas/NivelPrioridad" }
         justificacionPrioridad: { type: string }
-        tipoSolicitud: { $ref: '#/components/schemas/TipoSolicitud' }
-        prioridad: { $ref: '#/components/schemas/Prioridad' }
-        solicitante: { $ref: '#/components/schemas/Usuario' }
-        asignacion: { $ref: '#/components/schemas/Asignacion' }
+        usuarioAsignadoId: { type: integer }
+        solicitanteId: { type: integer }
+        fechaCreacion: { type: string, format: date-time }
 
     Usuario:
       type: object
       properties:
-        id: { type: string, format: uuid }
+        id: { type: integer }
         nombre: { type: string }
         email: { type: string }
-        rol: { $ref: '#/components/schemas/Rol' }
-        activo: { type: boolean }
+        rol: { $ref: "#/components/schemas/Rol" }
 
     TipoSolicitud:
       type: object
       properties:
-        id: { type: string, format: uuid }
+        id: { type: integer }
         nombre: { type: string }
         descripcion: { type: string }
 
-    Prioridad:
-      type: object
-      properties:
-        id: { type: string, format: uuid }
-        nivel: { $ref: '#/components/schemas/NivelPrioridad' }
-        descripcion: { type: string }
-
-    Asignacion:
-      type: object
-      properties:
-        id: { type: string, format: uuid }
-        fechaRegistro: { type: string, format: date-time }
-        responsable: { $ref: '#/components/schemas/Usuario' }
-
-    HistorialSolicitud:
-      type: object
-      properties:
-        id: { type: string, format: uuid }
-        fechaHora: { type: string, format: date-time }
-        accion: { type: string }
-        observacion: { type: string }
-        ejecutadoPor: { $ref: '#/components/schemas/Usuario' }
-
     CrearSolicitudRequest:
       type: object
-      required: [descripcion, tipoSolicitudId, canalOrigen, solicitanteId]
+      required: [descripcion, canalOrigen]
       properties:
         descripcion: { type: string }
-        tipoSolicitudId: { type: string, format: uuid }
-        canalOrigen: { $ref: '#/components/schemas/CanalOrigen' }
-        solicitanteId: { type: string, format: uuid }
+        canalOrigen: { $ref: "#/components/schemas/CanalOrigen" }
 
     ClasificacionRequest:
       type: object
-      required: [tipoSolicitudId, prioridadNivel, justificacionPrioridad]
+      required: [tipoSolicitudId, prioridad, justificacionPrioridad]
       properties:
-        tipoSolicitudId: { type: string, format: uuid }
-        prioridadNivel: { $ref: '#/components/schemas/NivelPrioridad' }
+        tipoSolicitudId: { type: integer }
+        prioridad: { $ref: "#/components/schemas/NivelPrioridad" }
         justificacionPrioridad: { type: string }
-
-    CambioEstadoRequest:
-      type: object
-      required: [nuevoEstado, observacion]
-      properties:
-        nuevoEstado: { $ref: '#/components/schemas/EstadoSolicitud' }
-        observacion: { type: string }
-
-    AsignacionRequest:
-      type: object
-      required: [responsableId]
-      properties:
-        responsableId: { type: string, format: uuid }
-
-    CierreRequest:
-      type: object
-      required: [observacionCierre]
-      properties:
-        observacionCierre: { type: string }
-
-    SugerenciaIARequest:
-      type: object
-      properties:
-        descripcion: { type: string }
-
-    SugerenciaIAResponse:
-      type: object
-      properties:
-        tipoSugerido: { type: string }
-        prioridadSugerida: { $ref: '#/components/schemas/NivelPrioridad' }
-        confianza: { type: number, format: float }
-
-    PaginaSolicitudes:
-      type: object
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/Solicitud'
-        totalElements: { type: integer }
 
     EstadoSolicitud:
       type: string
@@ -359,9 +319,13 @@ components:
       type: object
       properties:
         message: { type: string }
+        data: { type: object }
 
-    ErrorResponse:
+    PaginaSolicitudes:
       type: object
       properties:
-        error: { type: string }
-        message: { type: string }
+        content:
+          type: array
+          items: { $ref: "#/components/schemas/Solicitud" }
+        totalPages: { type: integer }
+        totalElements: { type: integer }
