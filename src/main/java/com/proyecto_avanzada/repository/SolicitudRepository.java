@@ -12,10 +12,10 @@ import com.proyecto_avanzada.domain.enums.NivelPrioridad;
 public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
 
        @Query("SELECT s FROM Solicitud s WHERE " +
-                     "(COALESCE(:estado, NULL) IS NULL OR s.estado = :estado) AND " +
-                     "(COALESCE(:tipoId, NULL) IS NULL OR s.tipoSolicitud.id = :tipoId) AND " +
-                     "(COALESCE(:prioridad, NULL) IS NULL OR s.prioridad = :prioridad) AND " +
-                     "(COALESCE(:responsableId, NULL) IS NULL OR s.usuarioAsignado.id = :responsableId)")
+                     "(:estado IS NULL OR s.estado = :estado) AND " +
+                     "(:tipoId IS NULL OR s.tipoSolicitud.id = :tipoId) AND " +
+                     "(:prioridad IS NULL OR s.prioridad = :prioridad) AND " +
+                     "(:responsableId IS NULL OR s.usuarioAsignado.id = :responsableId)")
        Page<Solicitud> findByFiltros(
                      @Param("estado") EstadoSolicitud estado,
                      @Param("tipoId") Long tipoId,

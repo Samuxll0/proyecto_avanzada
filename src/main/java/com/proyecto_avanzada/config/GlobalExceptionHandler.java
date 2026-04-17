@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.security.access.AccessDeniedException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,6 +40,15 @@ public class GlobalExceptionHandler {
                 System.currentTimeMillis());
 
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<GlobalDTOs.ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
+        GlobalDTOs.ErrorResponse error = new GlobalDTOs.ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                "Acceso denegado: No tiene permisos para realizar esta acción",
+                System.currentTimeMillis());
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(Exception.class)
