@@ -1,18 +1,21 @@
 package com.proyecto_avanzada.service;
 
-import com.proyecto_avanzada.domain.entity.TipoSolicitud;
-import com.proyecto_avanzada.domain.entity.Usuario;
-import com.proyecto_avanzada.dto.CatalogoDTOs;
-import com.proyecto_avanzada.repository.TipoSolicitudRepository;
-import com.proyecto_avanzada.repository.UsuarioRepository;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.proyecto_avanzada.domain.enums.NivelPrioridad;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.proyecto_avanzada.domain.entity.TipoSolicitud;
+import com.proyecto_avanzada.domain.enums.NivelPrioridad;
+import com.proyecto_avanzada.dto.CatalogoDTOs;
+import com.proyecto_avanzada.mapper.TipoSolicitudMapper;
+import com.proyecto_avanzada.mapper.UsuarioMapper;
+import com.proyecto_avanzada.repository.TipoSolicitudRepository;
+import com.proyecto_avanzada.repository.UsuarioRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -21,11 +24,13 @@ public class CatalogoService {
     private final UsuarioRepository usuarioRepository;
     private final TipoSolicitudRepository tipoSolicitudRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UsuarioMapper usuarioMapper;
+    private final TipoSolicitudMapper tipoSolicitudMapper;
 
     public List<CatalogoDTOs.UsuarioResponse> obtenerUsuarios() {
         return usuarioRepository.findAll().stream()
-                .map(u -> new CatalogoDTOs.UsuarioResponse(u.getId(), u.getNombre(), u.getEmail(), u.getRol()))
-                .collect(Collectors.toList());
+            .map(usuarioMapper::toResponse)
+            .collect(Collectors.toList());
     }
 
     @Transactional
@@ -35,13 +40,13 @@ public class CatalogoService {
                 .descripcion(request.descripcion())
                 .build();
         TipoSolicitud saved = tipoSolicitudRepository.save(tipo);
-        return new CatalogoDTOs.TipoSolicitudResponse(saved.getId(), saved.getNombre(), saved.getDescripcion());
+        return tipoSolicitudMapper.toResponse(saved);
     }
 
     public List<CatalogoDTOs.TipoSolicitudResponse> obtenerTiposSolicitud() {
         return tipoSolicitudRepository.findAll().stream()
-                .map(t -> new CatalogoDTOs.TipoSolicitudResponse(t.getId(), t.getNombre(), t.getDescripcion()))
-                .collect(Collectors.toList());
+            .map(tipoSolicitudMapper::toResponse)
+            .collect(Collectors.toList());
     }
 
     public List<CatalogoDTOs.PrioridadResponse> obtenerPrioridades() {

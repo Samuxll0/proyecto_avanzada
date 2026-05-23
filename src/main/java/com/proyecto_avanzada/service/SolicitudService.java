@@ -20,6 +20,8 @@ import com.proyecto_avanzada.domain.entity.Usuario;
 import com.proyecto_avanzada.domain.enums.EstadoSolicitud;
 import com.proyecto_avanzada.domain.enums.NivelPrioridad;
 import com.proyecto_avanzada.dto.SolicitudDTOs;
+import com.proyecto_avanzada.mapper.HistorialSolicitudMapper;
+import com.proyecto_avanzada.mapper.SolicitudMapper;
 import com.proyecto_avanzada.repository.AsignacionRepository;
 import com.proyecto_avanzada.repository.HistorialSolicitudRepository;
 import com.proyecto_avanzada.repository.SolicitudRepository;
@@ -38,6 +40,8 @@ public class SolicitudService {
     private final AsignacionRepository asignacionRepository;
     private final HistorialSolicitudRepository historialRepository;
     private final AIService aiService;
+    private final SolicitudMapper solicitudMapper;
+    private final HistorialSolicitudMapper historialSolicitudMapper;
 
     @Transactional
     public SolicitudDTOs.SolicitudResponse crearSolicitud(SolicitudDTOs.SolicitudRequest request, String emailAutor) {
@@ -241,10 +245,8 @@ public class SolicitudService {
     public List<SolicitudDTOs.HistorialResponse> obtenerHistorial(Long id) {
         List<HistorialSolicitud> historiales = historialRepository.findBySolicitudIdOrderByFechaCambioDesc(id);
         return historiales.stream()
-                .map(h -> new SolicitudDTOs.HistorialResponse(
-                        h.getId(), h.getEstadoAnterior(), h.getEstadoNuevo(),
-                        h.getFechaCambio(), h.getComentarios()))
-                .collect(Collectors.toList());
+            .map(historialSolicitudMapper::toResponse)
+            .collect(Collectors.toList());
     }
 
     private void registrarHistorial(Solicitud solicitud, EstadoSolicitud estadoAnterior, EstadoSolicitud estadoNuevo,
@@ -260,17 +262,7 @@ public class SolicitudService {
     }
 
     private SolicitudDTOs.SolicitudResponse mapToResponse(Solicitud s) {
-        return new SolicitudDTOs.SolicitudResponse(
-                s.getId(),
-                s.getDescripcion(),
-                s.getEstado(),
-                s.getCanalOrigen(),
-                s.getTipoSolicitud() != null ? s.getTipoSolicitud().getId() : null,
-                s.getPrioridad(),
-                s.getJustificacionPrioridad(),
-                s.getUsuarioAsignado() != null ? s.getUsuarioAsignado().getId() : null,
-                s.getSolicitante() != null ? s.getSolicitante().getId() : null,
-                s.getFechaCreacion());
+        return solicitudMapper.toResponse(s);
     }
 
     public String generarResumen(Long id) {

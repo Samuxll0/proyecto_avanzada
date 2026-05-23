@@ -17,6 +17,7 @@ import com.proyecto_avanzada.domain.entity.Usuario;
 import com.proyecto_avanzada.domain.enums.Rol;
 import com.proyecto_avanzada.dto.AuthDTOs;
 import com.proyecto_avanzada.dto.GlobalDTOs;
+import com.proyecto_avanzada.mapper.UsuarioMapper;
 import com.proyecto_avanzada.repository.UsuarioRepository;
 import com.proyecto_avanzada.security.JwtService;
 import com.proyecto_avanzada.security.UserDetailsImpl;
@@ -30,11 +31,13 @@ public class AuthController {
     private final JwtService jwtService;
     private final UsuarioService usuarioService;
     private final PasswordEncoder passwordEncoder;
+    private final UsuarioMapper usuarioMapper;
 
     public AuthController(AuthenticationManager authenticationManager, JwtService jwtService,
             @Nullable UsuarioService usuarioService,
             UsuarioRepository usuarioRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            UsuarioMapper usuarioMapper) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         if (usuarioService != null) {
@@ -43,6 +46,7 @@ public class AuthController {
             this.usuarioService = new UsuarioService(usuarioRepository);
         }
         this.passwordEncoder = passwordEncoder;
+        this.usuarioMapper = usuarioMapper;
     }
 
     @PostMapping("/login")
@@ -83,13 +87,11 @@ public class AuthController {
                     "Dominio de correo no autorizado. Use un correo institucional (ej. @estudiante.triagre.com).");
         }
 
-        Usuario nuevoUsuario = Usuario.builder()
-                .nombre(request.nombre())
-                .email(email)
-                .password(passwordEncoder.encode(request.password()))
-                .rol(rolAsignado)
-                .activo(true)
-                .build();
+        Usuario nuevoUsuario = usuarioMapper.toEntity(request);
+        nuevoUsuario.setEmail(email);
+        nuevoUsuario.setPassword(passwordEncoder.encode(request.password()));
+        nuevoUsuario.setRol(rolAsignado);
+        nuevoUsuario.setActivo(true);
 
         usuarioService.saveUsuario(nuevoUsuario);
 
