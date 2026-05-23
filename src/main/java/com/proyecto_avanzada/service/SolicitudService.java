@@ -1,21 +1,32 @@
 package com.proyecto_avanzada.service;
 
-import com.proyecto_avanzada.domain.entity.*;
-import com.proyecto_avanzada.domain.enums.EstadoSolicitud;
-import com.proyecto_avanzada.dto.SolicitudDTOs;
-import com.proyecto_avanzada.repository.*;
-import com.proyecto_avanzada.service.AIService;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import com.proyecto_avanzada.domain.enums.NivelPrioridad;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.proyecto_avanzada.domain.entity.Asignacion;
+import com.proyecto_avanzada.domain.entity.HistorialSolicitud;
+import com.proyecto_avanzada.domain.entity.Solicitud;
+import com.proyecto_avanzada.domain.entity.TipoSolicitud;
+import com.proyecto_avanzada.domain.entity.Usuario;
+import com.proyecto_avanzada.domain.enums.EstadoSolicitud;
+import com.proyecto_avanzada.domain.enums.NivelPrioridad;
+import com.proyecto_avanzada.dto.SolicitudDTOs;
+import com.proyecto_avanzada.repository.AsignacionRepository;
+import com.proyecto_avanzada.repository.HistorialSolicitudRepository;
+import com.proyecto_avanzada.repository.SolicitudRepository;
+import com.proyecto_avanzada.repository.TipoSolicitudRepository;
+import com.proyecto_avanzada.repository.UsuarioRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -86,13 +97,58 @@ public class SolicitudService {
         Usuario autor = obtenerAutor(emailAutor);
 
         solicitud.setTipoSolicitud(tipo);
-        solicitud.setPrioridad(request.prioridad());
-        solicitud.setJustificacionPrioridad(request.justificacionPrioridad());
+
+        // RF-03: calcular prioridad en el servidor basada en reglas de negocio
+        LocalDateTime fechaLimite = request.fechaLimite();
+        Boolean impactoAcademico = request.impactoAcademico();
+
+        com.proyecto_avanzada.domain.enums.NivelPrioridad prioridadCalculada = com.proyecto_avanzada.domain.enums.NivelPrioridad.BAJA;
+        String justificacion = "Priorización automática basada en reglas: ";
+
+        // Mantener prioridad enviada por el cliente si existe (compatibilidad con clientes actuales)
+        if (request.prioridad() != null) {
+            prioridadCalculada = request.prioridad();
+            justificacion = request.justificacionPrioridad() != null ? request.justificacionPrioridad()
+                    : "Prioridad establecida manualmente por el clasificador";
+        } else {
+            LocalDateTime ahora = LocalDateTime.now();
+            if (fechaLimite != null) {
+            long dias = ChronoUnit.DAYS.between(ahora.toLocalDate(), fechaLimite.toLocalDate());
+            if (dias <= 3) {
+                prioridadCalculada = com.proyecto_avanzada.domain.enums.NivelPrioridad.ALTA;
+                justificacion += "Fecha límite cercana (" + dias + " días).";
+            } else if (dias <= 7) {
+                prioridadCalculada = com.proyecto_avanzada.domain.enums.NivelPrioridad.MEDIA;
+                justificacion += "Fecha límite en menos de una semana (" + dias + " días).";
+            } else {
+                prioridadCalculada = com.proyecto_avanzada.domain.enums.NivelPrioridad.BAJA;
+                justificacion += "Fecha límite lejana (" + dias + " días).";
+            }
+            } else if (impactoAcademico != null && impactoAcademico) {
+            prioridadCalculada = com.proyecto_avanzada.domain.enums.NivelPrioridad.ALTA;
+            justificacion += "Impacto académico reportado como alto.";
+        } else if (tipo.getNombre() != null) {
+            String nombre = tipo.getNombre().toLowerCase();
+            if (nombre.contains("examen") || nombre.contains("nota") || nombre.contains("recuper") || nombre.contains("graduac")) {
+                prioridadCalculada = com.proyecto_avanzada.domain.enums.NivelPrioridad.ALTA;
+                justificacion += "Tipo de solicitud crítico: " + tipo.getNombre() + ".";
+            } else {
+                prioridadCalculada = com.proyecto_avanzada.domain.enums.NivelPrioridad.MEDIA;
+                justificacion += "Tipo de solicitud estándar: " + tipo.getNombre() + ".";
+            }
+        } else {
+            prioridadCalculada = com.proyecto_avanzada.domain.enums.NivelPrioridad.BAJA;
+            justificacion += "Sin datos adicionales; prioridad por defecto BAJA.";
+        }
+        }
+
+        solicitud.setPrioridad(prioridadCalculada);
+        solicitud.setJustificacionPrioridad(justificacion);
         solicitud.setEstado(EstadoSolicitud.CLASIFICADA);
 
         Solicitud saved = solicitudRepository.save(solicitud);
         registrarHistorial(saved, estadoAnterior, EstadoSolicitud.CLASIFICADA, "Solicitud clasificada y priorizada.",
-                autor);
+            autor);
 
         return mapToResponse(saved);
     }

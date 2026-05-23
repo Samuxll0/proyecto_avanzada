@@ -1,11 +1,13 @@
 package com.proyecto_avanzada.dto;
 
-import com.proyecto_avanzada.domain.enums.NivelPrioridad;
+import java.time.LocalDateTime;
+
 import com.proyecto_avanzada.domain.enums.CanalOrigen;
 import com.proyecto_avanzada.domain.enums.EstadoSolicitud;
+import com.proyecto_avanzada.domain.enums.NivelPrioridad;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDateTime;
 
 public class SolicitudDTOs {
 
@@ -29,8 +31,15 @@ public class SolicitudDTOs {
 
         public record ClasificacionRequest(
                         @NotNull Long tipoSolicitudId,
-                        @NotNull NivelPrioridad prioridad,
-                        @NotBlank String justificacionPrioridad) {
+                        NivelPrioridad prioridad,
+                        String justificacionPrioridad,
+                        Boolean impactoAcademico,
+                        LocalDateTime fechaLimite) {
+
+                        public ClasificacionRequest(Long tipoSolicitudId, NivelPrioridad prioridad, String justificacionPrioridad) {
+                                this(tipoSolicitudId, prioridad, justificacionPrioridad, null, null);
+                        }
+
         }
 
         public record AtencionRequest(
