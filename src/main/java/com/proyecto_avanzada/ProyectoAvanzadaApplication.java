@@ -10,4 +10,22 @@ public class ProyectoAvanzadaApplication {
 		SpringApplication.run(ProyectoAvanzadaApplication.class, args);
 	}
 
+	@Configuration
+	public static class environmentConfig{
+		
+		@Bean
+		public WebConfigurer corsConfigurer(){
+			return new WebConfigurer(){
+			
+				@Override
+				public void addCorsMappings(CorsRegistry registry) {
+					registry.addMapping("/**")
+						.allowedMethods("GET", "POST", "PUT", "DELETE");					
+				}
+			};			
+		}
+	}
+		
 }
+
+
