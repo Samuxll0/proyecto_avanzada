@@ -2,6 +2,10 @@ package com.proyecto_avanzada;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @SpringBootApplication
 public class ProyectoAvanzadaApplication {
@@ -14,8 +18,8 @@ public class ProyectoAvanzadaApplication {
 	public static class environmentConfig{
 		
 		@Bean
-		public WebConfigurer corsConfigurer(){
-			return new WebConfigurer(){
+		public WebMvcConfigurer corsConfigurer(){
+			return new WebMvcConfigurer(){
 			
 				@Override
 				public void addCorsMappings(CorsRegistry registry) {
