@@ -13,22 +13,6 @@ public class ProyectoAvanzadaApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(ProyectoAvanzadaApplication.class, args);
 	}
-
-	@Configuration
-	public static class environmentConfig{
-		
-		@Bean
-		public WebMvcConfigurer corsConfigurer(){
-			return new WebMvcConfigurer(){
-			
-				@Override
-				public void addCorsMappings(CorsRegistry registry) {
-					registry.addMapping("/**")
-						.allowedMethods("GET", "POST", "PUT", "DELETE");					
-				}
-			};			
-		}
-	}
 		
 }
 
