@@ -57,7 +57,7 @@ class SolicitudRepositoryTest {
     @Test
     void findByFiltros_DebeFiltrarPorEstado() {
         Page<Solicitud> result = solicitudRepository.findByFiltros(
-                EstadoSolicitud.REGISTRADA, null, null, null, null, PageRequest.of(0, 10));
+                EstadoSolicitud.REGISTRADA, null, null, null, null, null, PageRequest.of(0, 10));
 
         assertEquals(3, result.getTotalElements());
         assertTrue(result.getContent().stream().allMatch(s -> s.getEstado() == EstadoSolicitud.REGISTRADA));
@@ -66,7 +66,7 @@ class SolicitudRepositoryTest {
     @Test
     void findByFiltros_DebeFiltrarPorPrioridad() {
         Page<Solicitud> result = solicitudRepository.findByFiltros(
-                null, null, NivelPrioridad.ALTA, null, null, PageRequest.of(0, 10));
+                null, null, NivelPrioridad.ALTA, null, null, null, PageRequest.of(0, 10));
 
         assertEquals(2, result.getTotalElements());
         assertTrue(result.getContent().stream().allMatch(s -> s.getPrioridad() == NivelPrioridad.ALTA));
@@ -75,7 +75,7 @@ class SolicitudRepositoryTest {
     @Test
     void findByFiltros_DebeRetornarTodos_SiFiltrosSonNull() {
         Page<Solicitud> result = solicitudRepository.findByFiltros(
-                null, null, null, null, null, PageRequest.of(0, 10));
+                null, null, null, null, null, null, PageRequest.of(0, 10));
 
         assertEquals(5, result.getTotalElements());
     }
