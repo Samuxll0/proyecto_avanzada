@@ -25,7 +25,10 @@ public class SolicitudDTOs {
                         NivelPrioridad prioridad,
                         String justificacionPrioridad,
                         Long usuarioAsignadoId,
+                        String usuarioAsignadoNombre,
                         Long solicitanteId,
+                        String solicitanteNombre,
+                        String solicitanteEmail,
                         LocalDateTime fechaCreacion) {
         }
 
@@ -59,6 +62,28 @@ public class SolicitudDTOs {
                         EstadoSolicitud estadoAnterior,
                         EstadoSolicitud estadoNuevo,
                         LocalDateTime fechaCambio,
-                        String comentarios) {
+                        String comentarios,
+                        String autorCambioNombre) {
+        }
+
+        public record ComentarioRequest(
+                        @NotBlank String contenido) {
+        }
+
+        public record ComentarioResponse(
+                        Long id,
+                        String contenido,
+                        String autorNombre,
+                        String autorEmail,
+                        LocalDateTime fechaCreacion) {
+        }
+
+        public record EstadisticasResponse(
+                        long total,
+                        long registradas,
+                        long clasificadas,
+                        long enAtencion,
+                        long atendidas,
+                        long cerradas) {
         }
 }

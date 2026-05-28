@@ -8,11 +8,13 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.proyecto_avanzada.domain.entity.Asignacion;
+import com.proyecto_avanzada.domain.entity.ComentarioSolicitud;
 import com.proyecto_avanzada.domain.entity.HistorialSolicitud;
 import com.proyecto_avanzada.domain.entity.Solicitud;
 import com.proyecto_avanzada.domain.entity.TipoSolicitud;
@@ -23,6 +25,7 @@ import com.proyecto_avanzada.dto.SolicitudDTOs;
 import com.proyecto_avanzada.mapper.HistorialSolicitudMapper;
 import com.proyecto_avanzada.mapper.SolicitudMapper;
 import com.proyecto_avanzada.repository.AsignacionRepository;
+import com.proyecto_avanzada.repository.ComentarioSolicitudRepository;
 import com.proyecto_avanzada.repository.HistorialSolicitudRepository;
 import com.proyecto_avanzada.repository.SolicitudRepository;
 import com.proyecto_avanzada.repository.TipoSolicitudRepository;
@@ -39,6 +42,7 @@ public class SolicitudService {
     private final TipoSolicitudRepository tipoSolicitudRepository;
     private final AsignacionRepository asignacionRepository;
     private final HistorialSolicitudRepository historialRepository;
+    private final ComentarioSolicitudRepository comentarioRepository;
     private final AIService aiService;
     private final SolicitudMapper solicitudMapper;
     private final HistorialSolicitudMapper historialSolicitudMapper;
@@ -64,8 +68,8 @@ public class SolicitudService {
     }
 
     public Page<SolicitudDTOs.SolicitudResponse> listarSolicitudes(String estado, Long tipoId,
-            NivelPrioridad prioridad, Long responsableId, Pageable pageable,
-            org.springframework.security.core.Authentication authentication) {
+            NivelPrioridad prioridad, Long responsableId, String search, Pageable pageable,
+            Authentication authentication) {
         EstadoSolicitud estadoEnum = null;
         if (estado != null && !estado.isEmpty()) {
             try {
@@ -81,7 +85,12 @@ public class SolicitudService {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINADOR"));
         String emailSolicitante = esCoordinador ? null : authentication.getName();
 
-        return solicitudRepository.findByFiltros(estadoEnum, tipoId, prioridad, responsableId, emailSolicitante, pageable)
+        // Normalizar search vacío a null
+        if (search != null && search.trim().isEmpty()) {
+            search = null;
+        }
+
+        return solicitudRepository.findByFiltros(estadoEnum, tipoId, prioridad, responsableId, emailSolicitante, search, pageable)
                 .map(this::mapToResponse);
     }
 
@@ -232,6 +241,87 @@ public class SolicitudService {
         solicitudRepository.save(solicitud);
 
         registrarHistorial(solicitud, estadoAnterior, EstadoSolicitud.CERRADA, request.comentariosCierre(), autor);
+    }
+
+    // ── Estadísticas ──────────────────────────────────────────
+    public SolicitudDTOs.EstadisticasResponse obtenerEstadisticas(Authentication authentication) {
+        boolean esCoordinador = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINADOR"));
+
+        if (esCoordinador) {
+            return new SolicitudDTOs.EstadisticasResponse(
+                    solicitudRepository.count(),
+                    solicitudRepository.countByEstado(EstadoSolicitud.REGISTRADA),
+                    solicitudRepository.countByEstado(EstadoSolicitud.CLASIFICADA),
+                    solicitudRepository.countByEstado(EstadoSolicitud.EN_ATENCION),
+                    solicitudRepository.countByEstado(EstadoSolicitud.ATENDIDA),
+                    solicitudRepository.countByEstado(EstadoSolicitud.CERRADA));
+        } else {
+            String email = authentication.getName();
+            return new SolicitudDTOs.EstadisticasResponse(
+                    solicitudRepository.countBySolicitanteEmail(email),
+                    solicitudRepository.countBySolicitanteEmailAndEstado(email, EstadoSolicitud.REGISTRADA),
+                    solicitudRepository.countBySolicitanteEmailAndEstado(email, EstadoSolicitud.CLASIFICADA),
+                    solicitudRepository.countBySolicitanteEmailAndEstado(email, EstadoSolicitud.EN_ATENCION),
+                    solicitudRepository.countBySolicitanteEmailAndEstado(email, EstadoSolicitud.ATENDIDA),
+                    solicitudRepository.countBySolicitanteEmailAndEstado(email, EstadoSolicitud.CERRADA));
+        }
+    }
+
+    // ── Comentarios ───────────────────────────────────────────
+    @Transactional
+    public SolicitudDTOs.ComentarioResponse agregarComentario(Long solicitudId, SolicitudDTOs.ComentarioRequest request,
+            String emailAutor) {
+        Solicitud solicitud = solicitudRepository.findById(solicitudId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
+
+        Usuario autor = obtenerAutor(emailAutor);
+        if (autor == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado");
+        }
+
+        ComentarioSolicitud comentario = ComentarioSolicitud.builder()
+                .solicitud(solicitud)
+                .autor(autor)
+                .contenido(request.contenido())
+                .build();
+
+        ComentarioSolicitud saved = comentarioRepository.save(comentario);
+
+        return new SolicitudDTOs.ComentarioResponse(
+                saved.getId(),
+                saved.getContenido(),
+                saved.getAutor().getNombre(),
+                saved.getAutor().getEmail(),
+                saved.getFechaCreacion());
+    }
+
+    public List<SolicitudDTOs.ComentarioResponse> listarComentarios(Long solicitudId) {
+        return comentarioRepository.findBySolicitudIdOrderByFechaCreacionAsc(solicitudId).stream()
+                .map(c -> new SolicitudDTOs.ComentarioResponse(
+                        c.getId(),
+                        c.getContenido(),
+                        c.getAutor().getNombre(),
+                        c.getAutor().getEmail(),
+                        c.getFechaCreacion()))
+                .collect(Collectors.toList());
+    }
+
+    // ── Exportar CSV ──────────────────────────────────────────
+    public String exportarCSV() {
+        List<Solicitud> todas = solicitudRepository.findAll();
+        StringBuilder sb = new StringBuilder();
+        sb.append("ID,Descripcion,Estado,Canal,Prioridad,Solicitante,Fecha Creacion\n");
+        for (Solicitud s : todas) {
+            sb.append(s.getId()).append(",");
+            sb.append("\"").append(s.getDescripcion().replace("\"", "\"\"")).append("\",");
+            sb.append(s.getEstado()).append(",");
+            sb.append(s.getCanalOrigen()).append(",");
+            sb.append(s.getPrioridad() != null ? s.getPrioridad() : "N/A").append(",");
+            sb.append(s.getSolicitante() != null ? s.getSolicitante().getEmail() : "N/A").append(",");
+            sb.append(s.getFechaCreacion()).append("\n");
+        }
+        return sb.toString();
     }
 
     private Solicitud obtenerSolicitudModificable(Long id) {

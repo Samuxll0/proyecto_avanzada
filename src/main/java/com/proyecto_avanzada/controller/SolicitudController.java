@@ -8,7 +8,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
@@ -27,7 +30,7 @@ public class SolicitudController {
     @PreAuthorize("isAuthenticated()")
     public GlobalDTOs.SuccessResponse<SolicitudDTOs.SolicitudResponse> crear(
             @Valid @RequestBody SolicitudDTOs.SolicitudRequest request,
-            org.springframework.security.core.Authentication authentication) {
+            Authentication authentication) {
         return new GlobalDTOs.SuccessResponse<>("Solicitud creada exitosamente",
                 solicitudService.crearSolicitud(request, authentication.getName()));
     }
@@ -38,9 +41,26 @@ public class SolicitudController {
             @RequestParam(required = false) Long tipoId,
             @RequestParam(required = false) NivelPrioridad prioridad,
             @RequestParam(required = false) Long responsableId,
+            @RequestParam(required = false) String search,
             Pageable pageable,
             Authentication authentication) {
-        return solicitudService.listarSolicitudes(estado, tipoId, prioridad, responsableId, pageable, authentication);
+        return solicitudService.listarSolicitudes(estado, tipoId, prioridad, responsableId, search, pageable, authentication);
+    }
+
+    @GetMapping("/estadisticas")
+    public GlobalDTOs.SuccessResponse<SolicitudDTOs.EstadisticasResponse> estadisticas(Authentication authentication) {
+        return new GlobalDTOs.SuccessResponse<>("Estadísticas", solicitudService.obtenerEstadisticas(authentication));
+    }
+
+    @GetMapping("/exportar")
+    @PreAuthorize("hasRole('COORDINADOR')")
+    public ResponseEntity<byte[]> exportarCSV() {
+        String csv = solicitudService.exportarCSV();
+        byte[] content = csv.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("text/csv; charset=UTF-8"));
+        headers.setContentDispositionFormData("attachment", "solicitudes.csv");
+        return new ResponseEntity<>(content, headers, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
@@ -97,5 +117,22 @@ public class SolicitudController {
     @PreAuthorize("hasRole('COORDINADOR')")
     public GlobalDTOs.SuccessResponse<String> resumen(@PathVariable Long id) {
         return new GlobalDTOs.SuccessResponse<>("Resumen generado", solicitudService.generarResumen(id));
+    }
+
+    // ── Comentarios ───────────────────────────────────────────
+    @PostMapping("/{id}/comentarios")
+    @PreAuthorize("isAuthenticated()")
+    public GlobalDTOs.SuccessResponse<SolicitudDTOs.ComentarioResponse> agregarComentario(
+            @PathVariable Long id,
+            @Valid @RequestBody SolicitudDTOs.ComentarioRequest request,
+            Authentication authentication) {
+        return new GlobalDTOs.SuccessResponse<>("Comentario agregado",
+                solicitudService.agregarComentario(id, request, authentication.getName()));
+    }
+
+    @GetMapping("/{id}/comentarios")
+    public GlobalDTOs.SuccessResponse<List<SolicitudDTOs.ComentarioResponse>> listarComentarios(
+            @PathVariable Long id) {
+        return new GlobalDTOs.SuccessResponse<>("Comentarios", solicitudService.listarComentarios(id));
     }
 }
