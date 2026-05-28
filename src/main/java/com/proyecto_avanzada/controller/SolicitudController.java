@@ -53,7 +53,7 @@ public class SolicitudController {
     }
 
     @GetMapping("/exportar")
-    @PreAuthorize("hasRole('COORDINADOR')")
+    @PreAuthorize("hasAnyRole('COORDINADOR', 'ADMINISTRATIVO')")
     public ResponseEntity<byte[]> exportarCSV() {
         String csv = solicitudService.exportarCSV();
         byte[] content = csv.getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -69,7 +69,7 @@ public class SolicitudController {
     }
 
     @PutMapping("/{id}/clasificacion")
-    @PreAuthorize("hasRole('COORDINADOR')")
+    @PreAuthorize("hasAnyRole('COORDINADOR', 'ADMINISTRATIVO')")
     public GlobalDTOs.SuccessResponse<SolicitudDTOs.SolicitudResponse> clasificar(
             @PathVariable Long id,
             @Valid @RequestBody SolicitudDTOs.ClasificacionRequest request,
@@ -79,7 +79,7 @@ public class SolicitudController {
     }
 
     @PostMapping("/{id}/asignacion")
-    @PreAuthorize("hasRole('COORDINADOR')")
+    @PreAuthorize("hasAnyRole('COORDINADOR', 'ADMINISTRATIVO')")
     public GlobalDTOs.SuccessResponse<Void> asignar(
             @PathVariable Long id,
             @Valid @RequestBody SolicitudDTOs.AsignacionRequest request,
@@ -89,7 +89,7 @@ public class SolicitudController {
     }
 
     @PutMapping("/{id}/atencion")
-    @PreAuthorize("hasRole('COORDINADOR')")
+    @PreAuthorize("hasAnyRole('COORDINADOR', 'ADMINISTRATIVO')")
     public GlobalDTOs.SuccessResponse<Void> atender(
             @PathVariable Long id,
             @Valid @RequestBody SolicitudDTOs.AtencionRequest request,
@@ -104,7 +104,7 @@ public class SolicitudController {
     }
 
     @PostMapping("/{id}/cierre")
-    @PreAuthorize("hasRole('COORDINADOR')")
+    @PreAuthorize("hasAnyRole('COORDINADOR', 'ADMINISTRATIVO')")
     public GlobalDTOs.SuccessResponse<Void> cierre(
             @PathVariable Long id,
             @Valid @RequestBody SolicitudDTOs.CierreRequest request,
@@ -114,7 +114,7 @@ public class SolicitudController {
     }
 
     @GetMapping("/{id}/resumen")
-    @PreAuthorize("hasRole('COORDINADOR')")
+    @PreAuthorize("hasAnyRole('COORDINADOR', 'ADMINISTRATIVO')")
     public GlobalDTOs.SuccessResponse<String> resumen(@PathVariable Long id) {
         return new GlobalDTOs.SuccessResponse<>("Resumen generado", solicitudService.generarResumen(id));
     }

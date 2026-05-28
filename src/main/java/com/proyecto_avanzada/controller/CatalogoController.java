@@ -19,7 +19,7 @@ public class CatalogoController {
     private final CatalogoService catalogoService;
 
     @GetMapping("/usuarios")
-    @PreAuthorize("hasRole('COORDINADOR')")
+    @PreAuthorize("hasAnyRole('COORDINADOR', 'ADMINISTRATIVO')")
     public List<CatalogoDTOs.UsuarioResponse> getUsuarios() {
         return catalogoService.obtenerUsuarios();
     }

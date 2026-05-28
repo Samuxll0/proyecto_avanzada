@@ -79,11 +79,11 @@ public class SolicitudService {
             }
         }
 
-        // Si el usuario es COORDINADOR, ve todas las solicitudes (emailSolicitante = null)
+        // Si el usuario es COORDINADOR o ADMINISTRATIVO, ve todas las solicitudes
         // Si no, solo ve sus propias solicitudes
-        boolean esCoordinador = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINADOR"));
-        String emailSolicitante = esCoordinador ? null : authentication.getName();
+        boolean esGestor = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINADOR") || a.getAuthority().equals("ROLE_ADMINISTRATIVO"));
+        String emailSolicitante = esGestor ? null : authentication.getName();
 
         // Normalizar search vacío a null
         if (search != null && search.trim().isEmpty()) {
@@ -245,10 +245,10 @@ public class SolicitudService {
 
     // ── Estadísticas ──────────────────────────────────────────
     public SolicitudDTOs.EstadisticasResponse obtenerEstadisticas(Authentication authentication) {
-        boolean esCoordinador = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINADOR"));
+        boolean esGestor = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINADOR") || a.getAuthority().equals("ROLE_ADMINISTRATIVO"));
 
-        if (esCoordinador) {
+        if (esGestor) {
             return new SolicitudDTOs.EstadisticasResponse(
                     solicitudRepository.count(),
                     solicitudRepository.countByEstado(EstadoSolicitud.REGISTRADA),
