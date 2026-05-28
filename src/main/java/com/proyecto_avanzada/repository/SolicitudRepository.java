@@ -15,11 +15,13 @@ public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
                      "(:estado IS NULL OR s.estado = :estado) AND " +
                      "(:tipoId IS NULL OR s.tipoSolicitud.id = :tipoId) AND " +
                      "(:prioridad IS NULL OR s.prioridad = :prioridad) AND " +
-                     "(:responsableId IS NULL OR s.usuarioAsignado.id = :responsableId)")
+                     "(:responsableId IS NULL OR s.usuarioAsignado.id = :responsableId) AND " +
+                     "(:emailSolicitante IS NULL OR s.solicitante.email = :emailSolicitante)")
        Page<Solicitud> findByFiltros(
                      @Param("estado") EstadoSolicitud estado,
                      @Param("tipoId") Long tipoId,
                      @Param("prioridad") NivelPrioridad prioridad,
                      @Param("responsableId") Long responsableId,
+                     @Param("emailSolicitante") String emailSolicitante,
                      Pageable pageable);
 }

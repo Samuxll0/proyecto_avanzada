@@ -64,7 +64,8 @@ public class SolicitudService {
     }
 
     public Page<SolicitudDTOs.SolicitudResponse> listarSolicitudes(String estado, Long tipoId,
-            NivelPrioridad prioridad, Long responsableId, Pageable pageable) {
+            NivelPrioridad prioridad, Long responsableId, Pageable pageable,
+            org.springframework.security.core.Authentication authentication) {
         EstadoSolicitud estadoEnum = null;
         if (estado != null && !estado.isEmpty()) {
             try {
@@ -73,7 +74,14 @@ public class SolicitudService {
                 // Ignore or handle
             }
         }
-        return solicitudRepository.findByFiltros(estadoEnum, tipoId, prioridad, responsableId, pageable)
+
+        // Si el usuario es COORDINADOR, ve todas las solicitudes (emailSolicitante = null)
+        // Si no, solo ve sus propias solicitudes
+        boolean esCoordinador = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_COORDINADOR"));
+        String emailSolicitante = esCoordinador ? null : authentication.getName();
+
+        return solicitudRepository.findByFiltros(estadoEnum, tipoId, prioridad, responsableId, emailSolicitante, pageable)
                 .map(this::mapToResponse);
     }
 

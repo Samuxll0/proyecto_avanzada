@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.proyecto_avanzada.domain.entity.Usuario;
 import com.proyecto_avanzada.domain.enums.Rol;
 import com.proyecto_avanzada.dto.AuthDTOs;
@@ -57,7 +60,10 @@ public class AuthController {
                         request.password()));
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        String token = jwtService.generateToken(userDetails);
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("rol", userDetails.getUsuario().getRol().name());
+        extraClaims.put("nombre", userDetails.getUsuario().getNombre());
+        String token = jwtService.generateToken(extraClaims, userDetails);
         return new AuthDTOs.LoginResponse(token);
     }
 

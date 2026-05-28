@@ -38,8 +38,9 @@ public class SolicitudController {
             @RequestParam(required = false) Long tipoId,
             @RequestParam(required = false) NivelPrioridad prioridad,
             @RequestParam(required = false) Long responsableId,
-            Pageable pageable) {
-        return solicitudService.listarSolicitudes(estado, tipoId, prioridad, responsableId, pageable);
+            Pageable pageable,
+            Authentication authentication) {
+        return solicitudService.listarSolicitudes(estado, tipoId, prioridad, responsableId, pageable, authentication);
     }
 
     @GetMapping("/{id}")
